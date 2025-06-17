@@ -123,4 +123,27 @@ class VideoController extends Controller
             'videos' => $videos
         ]);
     }
+
+    /**
+     * 動画の全コメントからキーワード抽出を実行
+     */
+    public function extractKeywords($videoId, YouTubeService $youtubeService)
+    {
+        set_time_limit(0);
+        $video = Video::findOrFail($videoId);
+        $comments = $video->comments()->pluck('text_display')->toArray();
+        if (empty($comments)) {
+            return response()->json([
+                'message' => 'コメントがありません',
+                'keywords' => [],
+            ], 200);
+        }
+        $keywords = $youtubeService->extractKeywords($comments, 10);
+        $video->keywords = $keywords;
+        $video->save();
+        return response()->json([
+            'message' => 'キーワード抽出が完了しました',
+            'keywords' => $keywords,
+        ]);
+    }
 }

@@ -9,6 +9,8 @@ const message = ref('');
 const error = ref('');
 const analyzing = ref({});
 const analyzed = ref({});
+const extracting = ref({});
+const keywords = ref({});
 
 const fetchVideos = async () => {
     loading.value = true;
@@ -17,6 +19,10 @@ const fetchVideos = async () => {
     try {
         const res = await axios.get('/api/my-videos');
         videos.value = res.data.videos;
+        // 既存のキーワードをセット
+        for (const v of res.data.videos) {
+            if (v.keywords) keywords.value[v.id] = v.keywords;
+        }
     } catch (e) {
         error.value = '動画一覧の取得に失敗しました';
     } finally {
@@ -37,6 +43,21 @@ const analyzeComments = async (video) => {
         error.value = e.response?.data?.message || '感情分析に失敗しました';
     } finally {
         analyzing.value[video.id] = false;
+    }
+};
+
+const extractKeywords = async (video) => {
+    extracting.value[video.id] = true;
+    message.value = '';
+    error.value = '';
+    try {
+        const res = await axios.post(`/api/videos/${video.id}/extract-keywords`);
+        message.value = res.data.message;
+        keywords.value[video.id] = res.data.keywords;
+    } catch (e) {
+        error.value = e.response?.data?.message || 'キーワード抽出に失敗しました';
+    } finally {
+        extracting.value[video.id] = false;
     }
 };
 
@@ -63,6 +84,19 @@ onMounted(fetchVideos);
                         <div class="mt-2">
                             <span v-if="video.analyzed_count > 0" class="text-green-600 font-semibold">分析済み: {{ video.analyzed_count }}件</span>
                             <span v-else class="text-gray-400">未分析</span>
+                        </div>
+                        <div class="mt-2">
+                            <button
+                                class="px-3 py-1 bg-green-600 text-white rounded font-semibold hover:bg-green-700 disabled:opacity-50 mr-2"
+                                :disabled="extracting[video.id]"
+                                @click="extractKeywords(video)"
+                            >
+                                <span v-if="extracting[video.id]">抽出中...</span>
+                                <span v-else>キーワード抽出</span>
+                            </button>
+                            <span v-if="keywords[video.id] && keywords[video.id].length > 0" class="ml-2 text-sm text-blue-700">
+                                キーワード: {{ keywords[video.id].join('、') }}
+                            </span>
                         </div>
                     </div>
                     <div class="flex flex-col gap-2 items-center">

@@ -26,6 +26,8 @@ Route::middleware([
     Route::post('/api/videos', [VideoController::class, 'store']);
     // コメント感情分析API
     Route::post('/api/videos/{video}/analyze-comments', [VideoController::class, 'analyzeComments']);
+    // キーワード抽出API
+    Route::post('/api/videos/{video}/extract-keywords', [VideoController::class, 'extractKeywords']);
     // 自分の保存動画一覧API
     Route::get('/api/my-videos', [VideoController::class, 'myVideos']);
 
