@@ -24,4 +24,13 @@ Route::middleware([
     
     // YouTube動画保存API
     Route::post('/api/videos', [VideoController::class, 'store']);
+    // コメント感情分析API
+    Route::post('/api/videos/{video}/analyze-comments', [VideoController::class, 'analyzeComments']);
+    // 自分の保存動画一覧API
+    Route::get('/api/my-videos', [VideoController::class, 'myVideos']);
+
+    // 保存動画一覧ページ
+    Route::get('/my-videos', function () {
+        return Inertia::render('MyVideos');
+    })->name('my-videos');
 });

@@ -1,5 +1,6 @@
 <script setup>
 // YouTube風のヘッダーコンポーネント
+import { Link } from '@inertiajs/vue3';
 </script>
 
 <template>
@@ -15,14 +16,17 @@
                         <span class="ml-2 text-xl font-semibold text-gray-900">YouTube</span>
                     </div>
                     <span class="text-gray-400">|</span>
-                    <span class="text-lg font-medium text-gray-700">コメント分析</span>
+                    <span class="text-lg font-medium text-gray-700">コメント分析。</span>
                 </div>
 
                 <!-- ナビゲーション -->
                 <nav class="flex items-center space-x-6">
-                    <a href="#" class="text-gray-700 hover:text-red-600 transition-colors font-medium">
+                    <Link href="/dashboard" class="text-gray-700 hover:text-red-600 transition-colors font-medium">
                         ホーム
-                    </a>
+                    </Link>
+                    <Link href="/my-videos" class="text-gray-700 hover:text-red-600 transition-colors font-medium">
+                        保存動画一覧
+                    </Link>
                     <a href="#" class="text-gray-700 hover:text-red-600 transition-colors font-medium">
                         履歴
                     </a>
