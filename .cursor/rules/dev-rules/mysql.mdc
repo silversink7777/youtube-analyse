@@ -1,0 +1,16 @@
+---
+description: This rule outlines comprehensive best practices for Laravel development, covering coding standards, security, performance, and testing to ensure maintainable, efficient, and secure applications. It provides guidelines for code organization, common patterns, performance considerations, security best practices, testing approaches, common pitfalls, and tooling.
+globs: *.php
+alwaysApply: false
+---
+To ensure clarity and consistency in table naming, we adopt the following prefix rules:
+
+    Master tables: Prefix with mst_
+    (These are reference or lookup tables that store static or rarely changing data.)
+
+        Example: mst_user_role, mst_country
+
+    Transactional or general data tables: Prefix with tbl_
+    (These hold dynamic, operational data used in day-to-day processes.)
+
+        Example: tbl_user, tbl_order
