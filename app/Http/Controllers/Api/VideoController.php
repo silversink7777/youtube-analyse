@@ -83,4 +83,44 @@ class VideoController extends Controller
             ], 500);
         }
     }
+
+    /**
+     * 動画の全コメントに感情分析を実行
+     */
+    public function analyzeComments($videoId, YouTubeService $youtubeService)
+    {
+        set_time_limit(0);
+        $video = Video::findOrFail($videoId);
+        $comments = $video->comments()->whereNull('sentiment_label')->get();
+        $analyzed = 0;
+        foreach ($comments as $comment) {
+            [$score, $label, $raw] = $youtubeService->analyzeSentiment($comment->text_display);
+            $comment->sentiment_score = $score;
+            $comment->sentiment_label = $label;
+            $comment->sentiment_json = $raw;
+            $comment->save();
+            $analyzed++;
+        }
+        return response()->json([
+            'message' => "{$analyzed}件のコメントを感情分析しました。",
+            'analyzed' => $analyzed,
+        ]);
+    }
+
+    /**
+     * 自分の保存動画一覧を返すAPI
+     */
+    public function myVideos()
+    {
+        $user = auth()->user();
+        $videos = $user->videos()->withCount([
+            'comments',
+            'comments as analyzed_count' => function ($q) {
+                $q->whereNotNull('sentiment_label');
+            }
+        ])->orderByDesc('created_at')->get();
+        return response()->json([
+            'videos' => $videos
+        ]);
+    }
 }

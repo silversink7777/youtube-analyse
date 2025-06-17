@@ -30,7 +30,6 @@ const handleUrlSubmitted = async (data) => {
 <template>
     <div class="min-h-screen bg-gray-50">
         <!-- YouTube風ヘッダー -->
-        <YouTubeHeader />
         
         <!-- ヒーローセクション -->
         <YouTubeHero />

@@ -235,4 +235,47 @@ class YouTubeService
         } while ($pageToken);
         return $comments;
     }
+
+    /**
+     * OpenAI APIで日本語コメントの感情分析を行う
+     * @param string $text
+     * @return array [score, label, raw]
+     */
+    public function analyzeSentiment(string $text): array
+    {
+        $apiKey = config('services.openai.api_key');
+        if (empty($apiKey)) {
+            return [null, null, null];
+        }
+        $endpoint = 'https://api.openai.com/v1/chat/completions';
+        $prompt = "次の日本語テキストの感情を1文で分類し、スコア（-1.0〜1.0）とラベル（positive, negative, neutral）で返してください。\nテキスト: {$text}";
+        $data = [
+            'model' => 'gpt-3.5-turbo',
+            'messages' => [
+                ['role' => 'system', 'content' => 'あなたは日本語の感情分析AIです。'],
+                ['role' => 'user', 'content' => $prompt],
+            ],
+            'max_tokens' => 100,
+            'temperature' => 0.2,
+        ];
+        $headers = [
+            'Authorization: Bearer ' . $apiKey,
+            'Content-Type: application/json',
+        ];
+        $ch = curl_init($endpoint);
+        curl_setopt($ch, CURLOPT_RETURNTRANSFER, true);
+        curl_setopt($ch, CURLOPT_POST, true);
+        curl_setopt($ch, CURLOPT_POSTFIELDS, json_encode($data));
+        curl_setopt($ch, CURLOPT_HTTPHEADER, $headers);
+        $result = curl_exec($ch);
+        curl_close($ch);
+        $response = json_decode($result, true);
+        $content = $response['choices'][0]['message']['content'] ?? '';
+        // 例: "score: 0.8\nlabel: positive"
+        preg_match('/score\s*[:：]\s*([\-0-9\.]+)/i', $content, $scoreMatch);
+        preg_match('/label\s*[:：]\s*(\w+)/i', $content, $labelMatch);
+        $score = isset($scoreMatch[1]) ? floatval($scoreMatch[1]) : null;
+        $label = $labelMatch[1] ?? null;
+        return [$score, $label, $response];
+    }
 }

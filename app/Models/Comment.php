@@ -22,6 +22,9 @@ class Comment extends Model
         'published_at',
         'updated_at_youtube',
         'is_public',
+        'sentiment_score',
+        'sentiment_label',
+        'sentiment_json',
     ];
 
     protected $casts = [
@@ -29,6 +32,8 @@ class Comment extends Model
         'updated_at_youtube' => 'datetime',
         'is_public' => 'boolean',
         'like_count' => 'integer',
+        'sentiment_score' => 'float',
+        'sentiment_json' => 'array',
     ];
 
     public function video(): BelongsTo
