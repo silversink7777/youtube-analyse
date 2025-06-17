@@ -35,6 +35,7 @@ class Video extends Model
         'is_analyzed',
         'last_analyzed_at',
         'user_id',
+        'keywords',
     ];
 
     protected $casts = [
@@ -46,6 +47,7 @@ class Video extends Model
         'like_count' => 'integer',
         'comment_count' => 'integer',
         'tags' => 'array',
+        'keywords' => 'array',
     ];
 
     /**

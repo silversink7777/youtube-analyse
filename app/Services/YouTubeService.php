@@ -278,4 +278,47 @@ class YouTubeService
         $label = $labelMatch[1] ?? null;
         return [$score, $label, $response];
     }
+
+    /**
+     * コメント群からキーワードを抽出（OpenAI API使用）
+     * @param string[] $comments
+     * @param int $maxKeywords
+     * @return array
+     */
+    public function extractKeywords(array $comments, int $maxKeywords = 10): array
+    {
+        $apiKey = config('services.openai.api_key');
+        if (empty($apiKey)) {
+            return [];
+        }
+        $endpoint = 'https://api.openai.com/v1/chat/completions';
+        $joined = implode("\n", array_slice($comments, 0, 100)); // 100件まで
+        $prompt = "次の日本語コメント群から重要なキーワードを最大{$maxKeywords}個、カンマ区切りで抽出してください。単語のみ返してください。\nコメント:\n{$joined}";
+        $data = [
+            'model' => 'gpt-3.5-turbo',
+            'messages' => [
+                ['role' => 'system', 'content' => 'あなたは日本語のキーワード抽出AIです。'],
+                ['role' => 'user', 'content' => $prompt],
+            ],
+            'max_tokens' => 100,
+            'temperature' => 0.2,
+        ];
+        $headers = [
+            'Authorization: Bearer ' . $apiKey,
+            'Content-Type: application/json',
+        ];
+        $ch = curl_init($endpoint);
+        curl_setopt($ch, CURLOPT_RETURNTRANSFER, true);
+        curl_setopt($ch, CURLOPT_POST, true);
+        curl_setopt($ch, CURLOPT_POSTFIELDS, json_encode($data));
+        curl_setopt($ch, CURLOPT_HTTPHEADER, $headers);
+        $result = curl_exec($ch);
+        curl_close($ch);
+        $response = json_decode($result, true);
+        $content = $response['choices'][0]['message']['content'] ?? '';
+        // 例: "キーワード1, キーワード2, ..."
+        $keywords = array_map('trim', explode(',', $content));
+        $keywords = array_filter($keywords, fn($k) => mb_strlen($k) > 0);
+        return array_slice($keywords, 0, $maxKeywords);
+    }
 }
