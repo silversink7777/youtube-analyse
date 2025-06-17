@@ -190,4 +190,49 @@ class YouTubeService
             throw new Exception('動画の基本情報取得に失敗しました');
         }
     }
+
+    /**
+     * YouTube動画IDからコメントを一括取得
+     * @param string $videoId
+     * @param int $maxResults
+     * @return array
+     */
+    public function fetchAllComments(string $videoId, int $maxResults = 100): array
+    {
+        $comments = [];
+        $pageToken = null;
+        $service = $this->youtubeService;
+        $params = [
+            'videoId' => $videoId,
+            'part' => 'snippet',
+            'maxResults' => min($maxResults, 100), // API上限
+            'textFormat' => 'plainText',
+            'order' => 'time',
+        ];
+        $fetched = 0;
+        do {
+            if ($pageToken) {
+                $params['pageToken'] = $pageToken;
+            }
+            $response = $service->commentThreads->listCommentThreads('snippet', $params);
+            foreach ($response->getItems() as $item) {
+                $snippet = $item->getSnippet();
+                $topComment = $snippet->getTopLevelComment()->getSnippet();
+                $comments[] = [
+                    'youtube_comment_id' => $item->getId(),
+                    'author_display_name' => $topComment->getAuthorDisplayName(),
+                    'author_channel_id' => $topComment->getAuthorChannelId()['value'] ?? null,
+                    'text_display' => $topComment->getTextDisplay(),
+                    'like_count' => $topComment->getLikeCount(),
+                    'published_at' => $topComment->getPublishedAt(),
+                    'updated_at_youtube' => $topComment->getUpdatedAt(),
+                    'is_public' => true,
+                ];
+                $fetched++;
+                if ($fetched >= $maxResults) break 2;
+            }
+            $pageToken = $response->getNextPageToken();
+        } while ($pageToken);
+        return $comments;
+    }
 }

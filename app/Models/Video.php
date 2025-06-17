@@ -162,4 +162,12 @@ class Video extends Model
         }
         return (string) $number;
     }
+
+    /**
+     * コメントとのリレーション
+     */
+    public function comments()
+    {
+        return $this->hasMany(Comment::class);
+    }
 }

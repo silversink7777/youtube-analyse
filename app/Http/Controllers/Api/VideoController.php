@@ -52,6 +52,18 @@ class VideoController extends Controller
                 ...$videoInfo,
                 'user_id' => $user->id,
             ]);
+
+            // コメント一括取得・保存
+            $comments = $youtubeService->fetchAllComments($videoId, 500); // 最大500件取得
+            foreach ($comments as $comment) {
+                $video->comments()->updateOrCreate(
+                    [
+                        'youtube_comment_id' => $comment['youtube_comment_id'],
+                    ],
+                    $comment
+                );
+            }
+
             DB::commit();
 
             return response()->json([
