@@ -2,6 +2,7 @@
 import { ref, onMounted } from 'vue';
 import axios from 'axios';
 import YouTubeHeader from '@/Components/YouTube/YouTubeHeader.vue';
+import WordFrequencyChart from '@/Components/WordFrequencyChart.vue';
 
 const videos = ref([]);
 const loading = ref(false);
@@ -164,22 +165,13 @@ onMounted(fetchVideos);
                             </div>
                         </div>
 
-                        <!-- 単語頻度表示 -->
+                        <!-- 単語頻度チャート表示 -->
                         <div v-if="wordFrequency[video.id] && wordFrequency[video.id].length > 0" class="mb-4">
                             <div class="text-xs font-medium text-gray-700 mb-2">よく使われている単語:</div>
-                            <div class="space-y-1">
-                                <div v-for="(item, index) in wordFrequency[video.id].slice(0, 5)" :key="index" 
-                                     class="flex items-center justify-between text-xs">
-                                    <span class="font-medium text-gray-800">{{ item.word }}</span>
-                                    <div class="flex items-center space-x-2">
-                                        <div class="w-16 bg-gray-200 rounded-full h-1.5">
-                                            <div class="bg-blue-600 h-1.5 rounded-full" 
-                                                 :style="{ width: Math.min((item.count / wordFrequency[video.id][0].count) * 100, 100) + '%' }"></div>
-                                        </div>
-                                        <span class="text-gray-600 w-8 text-right">{{ item.count }}回</span>
-                                    </div>
-                                </div>
-                            </div>
+                            <WordFrequencyChart 
+                                :word-frequency="wordFrequency[video.id]" 
+                                :max-words="8"
+                            />
                         </div>
 
                         <!-- キーワード表示 -->
