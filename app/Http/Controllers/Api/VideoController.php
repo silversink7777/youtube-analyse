@@ -146,4 +146,32 @@ class VideoController extends Controller
             'keywords' => $keywords,
         ]);
     }
+
+    /**
+     * 動画の全コメントから単語頻度分析を実行
+     */
+    public function analyzeWordFrequency($videoId, YouTubeService $youtubeService)
+    {
+        set_time_limit(0);
+        $video = Video::findOrFail($videoId);
+        $comments = $video->comments()->pluck('text_display')->toArray();
+        
+        if (empty($comments)) {
+            return response()->json([
+                'message' => 'コメントがありません',
+                'wordFrequency' => [],
+                'totalWords' => 0,
+            ], 200);
+        }
+        
+        $wordFrequency = $youtubeService->analyzeWordFrequency($comments, 20);
+        $totalWords = array_sum(array_column($wordFrequency, 'count'));
+        
+        return response()->json([
+            'message' => '単語頻度分析が完了しました',
+            'wordFrequency' => $wordFrequency,
+            'totalWords' => $totalWords,
+            'totalComments' => count($comments),
+        ]);
+    }
 }
