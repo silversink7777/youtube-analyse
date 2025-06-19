@@ -321,4 +321,70 @@ class YouTubeService
         $keywords = array_filter($keywords, fn($k) => mb_strlen($k) > 0);
         return array_slice($keywords, 0, $maxKeywords);
     }
+
+    /**
+     * コメント群から単語頻度を分析
+     * @param array $comments
+     * @param int $maxKeywords
+     * @return array
+     */
+    public function analyzeWordFrequency(array $comments, int $maxKeywords = 20): array
+    {
+        // ストップワード（除外する単語）
+        $stopWords = [
+            'の', 'に', 'は', 'を', 'が', 'と', 'で', 'も', 'から', 'まで', 'や', 'など', 'って', 'です', 'ます', 'です', 'ます',
+            'だ', 'た', 'て', 'で', 'に', 'は', 'を', 'が', 'と', 'も', 'から', 'まで', 'や', 'など', 'って', 'です', 'ます',
+            'a', 'an', 'the', 'and', 'or', 'but', 'in', 'on', 'at', 'to', 'for', 'of', 'with', 'by', 'is', 'are', 'was', 'were',
+            'be', 'been', 'being', 'have', 'has', 'had', 'do', 'does', 'did', 'will', 'would', 'could', 'should', 'may', 'might',
+            'this', 'that', 'these', 'those', 'i', 'you', 'he', 'she', 'it', 'we', 'they', 'me', 'him', 'her', 'us', 'them',
+            'my', 'your', 'his', 'her', 'its', 'our', 'their', 'mine', 'yours', 'hers', 'ours', 'theirs'
+        ];
+
+        $wordFrequency = [];
+        $allText = implode(' ', $comments);
+        
+        // 特殊文字を除去し、単語に分割
+        $allText = preg_replace('/[^\p{L}\p{N}\s]/u', ' ', $allText);
+        $allText = preg_replace('/\s+/', ' ', $allText);
+        $words = explode(' ', trim($allText));
+        
+        foreach ($words as $word) {
+            $word = mb_strtolower(trim($word));
+            
+            // 空文字、数字のみ、1文字、ストップワードを除外
+            if (empty($word) || 
+                preg_match('/^\d+$/', $word) || 
+                mb_strlen($word) <= 1 || 
+                in_array($word, $stopWords)) {
+                continue;
+            }
+            
+            // 日本語の場合は2文字以上、英語の場合は3文字以上
+            if (preg_match('/[\p{Hiragana}\p{Katakana}\p{Han}]/u', $word)) {
+                if (mb_strlen($word) < 2) continue;
+            } else {
+                if (strlen($word) < 3) continue;
+            }
+            
+            $wordFrequency[$word] = ($wordFrequency[$word] ?? 0) + 1;
+        }
+        
+        // 頻度順にソート
+        arsort($wordFrequency);
+        
+        // 上位の単語を返す
+        $topWords = array_slice($wordFrequency, 0, $maxKeywords, true);
+        
+        // 結果を整形
+        $result = [];
+        foreach ($topWords as $word => $count) {
+            $result[] = [
+                'word' => $word,
+                'count' => $count,
+                'percentage' => round(($count / count($words)) * 100, 2)
+            ];
+        }
+        
+        return $result;
+    }
 }
