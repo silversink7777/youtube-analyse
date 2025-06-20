@@ -15,11 +15,25 @@ const keywords = ref({});
 const wordFrequency = ref({});
 const analyzingWordFreq = ref({});
 
+// CSRFトークンを取得する関数
+const getCsrfToken = () => {
+    return document.querySelector('meta[name="csrf-token"]')?.getAttribute('content');
+};
+
+// axiosのデフォルト設定
+const setupAxios = () => {
+    const token = getCsrfToken();
+    axios.defaults.headers.common['X-CSRF-TOKEN'] = token;
+    axios.defaults.headers.common['X-Requested-With'] = 'XMLHttpRequest';
+    axios.defaults.withCredentials = true;
+};
+
 const fetchVideos = async () => {
     loading.value = true;
     message.value = '';
     error.value = '';
     try {
+        setupAxios();
         const res = await axios.get('/api/my-videos');
         videos.value = res.data.videos;
         for (const v of res.data.videos) {
@@ -37,6 +51,7 @@ const analyzeComments = async (video) => {
     message.value = '';
     error.value = '';
     try {
+        setupAxios();
         const res = await axios.post(`/api/videos/${video.id}/analyze-comments`);
         message.value = res.data.message;
         analyzed.value[video.id] = true;
@@ -53,6 +68,7 @@ const extractKeywords = async (video) => {
     message.value = '';
     error.value = '';
     try {
+        setupAxios();
         const res = await axios.post(`/api/videos/${video.id}/analyze-word-frequency`);
         message.value = res.data.message;
         wordFrequency.value[video.id] = res.data.wordFrequency;

@@ -14,10 +14,22 @@ const handleUrlSubmitted = async (data) => {
     processing.value = true;
     message.value = '';
     error.value = '';
+    
     try {
+        // CSRFトークンを取得
+        const token = document.querySelector('meta[name="csrf-token"]')?.getAttribute('content');
+        
         const response = await axios.post('/api/videos', {
             video_url: data.video_url
+        }, {
+            headers: {
+                'X-CSRF-TOKEN': token,
+                'X-Requested-With': 'XMLHttpRequest',
+                'Content-Type': 'application/json',
+            },
+            withCredentials: true
         });
+        
         message.value = response.data.message || '動画情報を保存しました';
     } catch (e) {
         error.value = e.response?.data?.message || '動画情報の保存に失敗しました';
@@ -30,6 +42,7 @@ const handleUrlSubmitted = async (data) => {
 <template>
     <div class="min-h-screen bg-gray-50">
         <!-- YouTube風ヘッダー -->
+        <YouTubeHeader />
         
         <!-- ヒーローセクション -->
         <YouTubeHero />
