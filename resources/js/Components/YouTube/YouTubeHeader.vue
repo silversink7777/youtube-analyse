@@ -1,6 +1,17 @@
 <script setup>
 // YouTube風のヘッダーコンポーネント
-import { Link } from '@inertiajs/vue3';
+import { Link, router, usePage } from '@inertiajs/vue3';
+
+// ページデータの取得
+const page = usePage();
+
+// ログアウト機能
+const logout = () => {
+    router.post(route('logout'));
+};
+
+// 認証状態の確認
+const isAuthenticated = page.props.auth?.user;
 </script>
 
 <template>
@@ -21,18 +32,42 @@ import { Link } from '@inertiajs/vue3';
 
                 <!-- ナビゲーション -->
                 <nav class="flex items-center space-x-6">
-                    <Link href="/dashboard" class="text-gray-700 hover:text-red-600 transition-colors font-medium">
-                        ホーム
-                    </Link>
-                    <Link href="/my-videos" class="text-gray-700 hover:text-red-600 transition-colors font-medium">
-                        保存動画一覧
-                    </Link>
-                    <a href="#" class="text-gray-700 hover:text-red-600 transition-colors font-medium">
-                        履歴
-                    </a>
-                    <a href="#" class="text-gray-700 hover:text-red-600 transition-colors font-medium">
-                        設定
-                    </a>
+                    <!-- 認証済みの場合のみ表示 -->
+                    <template v-if="isAuthenticated">
+                        <Link href="/dashboard" class="text-gray-700 hover:text-red-600 transition-colors font-medium">
+                            ホーム
+                        </Link>
+                        <Link href="/my-videos" class="text-gray-700 hover:text-red-600 transition-colors font-medium">
+                            保存動画一覧
+                        </Link>
+                        <a href="#" class="text-gray-700 hover:text-red-600 transition-colors font-medium">
+                            履歴
+                        </a>
+                        <a href="#" class="text-gray-700 hover:text-red-600 transition-colors font-medium">
+                            設定
+                        </a>
+                        
+                        <!-- ログアウトボタン -->
+                        <button 
+                            @click="logout"
+                            class="text-gray-700 hover:text-red-600 transition-colors font-medium flex items-center space-x-1"
+                        >
+                            <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17 16l4-4m0 0l-4-4m4 4H7m6 4v1a3 3 0 01-3 3H6a3 3 0 01-3-3V7a3 3 0 013-3h4a3 3 0 013 3v1"></path>
+                            </svg>
+                            <span>ログアウト</span>
+                        </button>
+                    </template>
+                    
+                    <!-- 未認証の場合 -->
+                    <template v-else>
+                        <Link href="/login" class="text-gray-700 hover:text-red-600 transition-colors font-medium">
+                            ログイン
+                        </Link>
+                        <Link href="/register" class="bg-red-600 hover:bg-red-700 text-white px-4 py-2 rounded-lg transition-colors font-medium">
+                            新規登録
+                        </Link>
+                    </template>
                 </nav>
             </div>
         </div>
