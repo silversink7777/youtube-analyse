@@ -10,6 +10,7 @@ use App\Models\Video;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Log;
 use Exception;
+use Illuminate\Database\QueryException;
 
 class VideoController extends Controller
 {
@@ -70,16 +71,52 @@ class VideoController extends Controller
                 'message' => '動画情報を保存しました',
                 'video' => $video
             ], 201);
+        } catch (QueryException $e) {
+            DB::rollBack();
+            Log::error('データベースエラー: ' . $e->getMessage(), [
+                'user_id' => $user->id ?? 'unknown',
+                'video_url' => $request->video_url,
+                'error' => $e->getMessage(),
+                'sql' => $e->getSql(),
+                'bindings' => $e->getBindings()
+            ]);
+            
+            // データベースエラーの詳細メッセージ
+            $errorMessage = 'データベースエラーが発生しました';
+            if (str_contains($e->getMessage(), 'Data too long for column')) {
+                $errorMessage = 'データが長すぎて保存できませんでした。管理者にお問い合わせください。';
+            } elseif (str_contains($e->getMessage(), 'Duplicate entry')) {
+                $errorMessage = '既に保存済みの動画です';
+            }
+            
+            return response()->json([
+                'message' => $errorMessage,
+                'error' => 'database_error',
+                'details' => config('app.debug') ? $e->getMessage() : null
+            ], 500);
         } catch (Exception $e) {
             DB::rollBack();
             Log::error('動画保存エラー: ' . $e->getMessage(), [
                 'user_id' => $user->id ?? 'unknown',
                 'video_url' => $request->video_url,
-                'error' => $e->getMessage()
+                'error' => $e->getMessage(),
+                'trace' => $e->getTraceAsString()
             ]);
+            
+            // 一般的なエラーメッセージ
+            $errorMessage = '動画情報の保存に失敗しました';
+            if (str_contains($e->getMessage(), 'Video not found')) {
+                $errorMessage = '指定された動画が見つかりませんでした';
+            } elseif (str_contains($e->getMessage(), '有効なYouTube動画URLではありません')) {
+                $errorMessage = '有効なYouTube動画URLを入力してください';
+            } elseif (str_contains($e->getMessage(), 'YouTube API key is not configured')) {
+                $errorMessage = 'システム設定エラーが発生しました';
+            }
+            
             return response()->json([
-                'message' => '動画情報の保存に失敗しました',
-                'error' => $e->getMessage()
+                'message' => $errorMessage,
+                'error' => 'general_error',
+                'details' => config('app.debug') ? $e->getMessage() : null
             ], 500);
         }
     }
