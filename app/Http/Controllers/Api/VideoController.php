@@ -11,9 +11,17 @@ use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Log;
 use Exception;
 use Illuminate\Database\QueryException;
+use App\Repositories\Interfaces\VideoRepositoryInterface;
 
 class VideoController extends Controller
 {
+    private VideoRepositoryInterface $videoRepository;
+
+    public function __construct(VideoRepositoryInterface $videoRepository)
+    {
+        $this->videoRepository = $videoRepository;
+    }
+
     /**
      * YouTube動画URLを受け取り、動画情報を取得・保存
      */
@@ -36,7 +44,7 @@ class VideoController extends Controller
             $videoId = $youtubeService->extractVideoId($request->video_url);
 
             // 既存動画チェック
-            $video = Video::where('youtube_id', $videoId)->where('user_id', $user->id)->first();
+            $video = $this->videoRepository->findExistingVideo($videoId, $user->id);
             if ($video) {
                 return response()->json([
                     'message' => '既に保存済みの動画です',
@@ -49,21 +57,11 @@ class VideoController extends Controller
 
             // 保存
             DB::beginTransaction();
-            $video = Video::create([
-                ...$videoInfo,
-                'user_id' => $user->id,
-            ]);
+            $video = $this->videoRepository->createVideo($videoInfo, $user->id);
 
             // コメント一括取得・保存
             $comments = $youtubeService->fetchAllComments($videoId, 500); // 最大500件取得
-            foreach ($comments as $comment) {
-                $video->comments()->updateOrCreate(
-                    [
-                        'youtube_comment_id' => $comment['youtube_comment_id'],
-                    ],
-                    $comment
-                );
-            }
+            $this->videoRepository->saveComments($video, $comments);
 
             DB::commit();
 
@@ -127,7 +125,7 @@ class VideoController extends Controller
     public function analyzeComments($videoId, YouTubeService $youtubeService)
     {
         set_time_limit(0);
-        $video = Video::findOrFail($videoId);
+        $video = $this->videoRepository->findById($videoId);
         $comments = $video->comments()->whereNull('sentiment_label')->get();
         $analyzed = 0;
         foreach ($comments as $comment) {
@@ -150,12 +148,7 @@ class VideoController extends Controller
     public function myVideos()
     {
         $user = auth()->user();
-        $videos = $user->videos()->withCount([
-            'comments',
-            'comments as analyzed_count' => function ($q) {
-                $q->whereNotNull('sentiment_label');
-            }
-        ])->orderByDesc('created_at')->get();
+        $videos = $this->videoRepository->getUserVideos($user->id);
         return response()->json([
             'videos' => $videos
         ]);
@@ -167,8 +160,8 @@ class VideoController extends Controller
     public function extractKeywords($videoId, YouTubeService $youtubeService)
     {
         set_time_limit(0);
-        $video = Video::findOrFail($videoId);
-        $comments = $video->comments()->pluck('text_display')->toArray();
+        $video = $this->videoRepository->findById($videoId);
+        $comments = $this->videoRepository->getCommentTexts($videoId);
         if (empty($comments)) {
             return response()->json([
                 'message' => 'コメントがありません',
@@ -176,8 +169,7 @@ class VideoController extends Controller
             ], 200);
         }
         $keywords = $youtubeService->extractKeywords($comments, 10);
-        $video->keywords = $keywords;
-        $video->save();
+        $this->videoRepository->updateKeywords($video, $keywords);
         return response()->json([
             'message' => 'キーワード抽出が完了しました',
             'keywords' => $keywords,
@@ -190,9 +182,8 @@ class VideoController extends Controller
     public function analyzeWordFrequency($videoId, YouTubeService $youtubeService)
     {
         set_time_limit(0);
-        $video = Video::findOrFail($videoId);
-        $comments = $video->comments()->pluck('text_display')->toArray();
-        
+        $video = $this->videoRepository->findById($videoId);
+        $comments = $this->videoRepository->getCommentTexts($videoId);
         if (empty($comments)) {
             return response()->json([
                 'message' => 'コメントがありません',
@@ -200,10 +191,8 @@ class VideoController extends Controller
                 'totalWords' => 0,
             ], 200);
         }
-        
         $wordFrequency = $youtubeService->analyzeWordFrequency($comments, 20);
         $totalWords = array_sum(array_column($wordFrequency, 'count'));
-        
         return response()->json([
             'message' => '単語頻度分析が完了しました',
             'wordFrequency' => $wordFrequency,
